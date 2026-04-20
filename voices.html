@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>agent-fm — Voice Catalog</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0a0a0a; color: #e0e0e0; padding: 2rem; }
+  h1 { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.3rem; color: #fff; }
+  .subtitle { color: #888; margin-bottom: 2rem; font-size: 0.95rem; }
+  .subtitle span { color: #f97316; font-weight: 500; }
+
+  .controls { display: flex; gap: 0.75rem; margin-bottom: 2rem; flex-wrap: wrap; }
+  .filter-btn { padding: 0.4rem 1rem; border-radius: 999px; border: 1px solid #333; background: transparent; color: #aaa; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+  .filter-btn:hover { border-color: #555; color: #fff; }
+  .filter-btn.active { background: #f97316; border-color: #f97316; color: #000; font-weight: 500; }
+
+  .lang-group { margin-bottom: 2.5rem; }
+  .lang-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+  .lang-flag { font-size: 1.4rem; }
+  .lang-name { font-size: 1.1rem; font-weight: 600; color: #fff; }
+  .lang-count { font-size: 0.8rem; color: #666; background: #1a1a1a; padding: 0.15rem 0.5rem; border-radius: 999px; }
+
+  .voice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; }
+  .voice-card { background: #141414; border: 1px solid #222; border-radius: 12px; padding: 1rem 1.2rem; transition: all 0.2s; cursor: default; }
+  .voice-card:hover { border-color: #444; background: #1a1a1a; transform: translateY(-1px); }
+  .voice-card.default { border-color: #f97316; }
+  .voice-card.default::after { content: "DEFAULT"; font-size: 0.6rem; font-weight: 700; color: #f97316; letter-spacing: 0.05em; float: right; margin-top: 2px; }
+
+  .voice-id { font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace; font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 0.3rem; }
+  .voice-meta { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.35rem; }
+  .voice-gender { font-size: 0.75rem; padding: 0.1rem 0.45rem; border-radius: 4px; font-weight: 500; }
+  .voice-gender.female { background: #2d1b3d; color: #c084fc; }
+  .voice-gender.male { background: #1b2d3d; color: #60a5fa; }
+  .voice-desc { font-size: 0.85rem; color: #888; }
+
+  .copy-hint { font-size: 0.75rem; color: #444; margin-top: 0.4rem; }
+  .voice-card:hover .copy-hint { color: #666; }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<h1>agent-fm Voice Catalog</h1>
+<p class="subtitle"><span>54 voices</span> across 9 languages — powered by Kokoro-82M</p>
+
+<div class="controls">
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="female">Female</button>
+  <button class="filter-btn" data-filter="male">Male</button>
+  <span style="width:1px; background:#333; margin:0 0.25rem"></span>
+  <button class="filter-btn" data-lang="en-us">🇺🇸 English (US)</button>
+  <button class="filter-btn" data-lang="en-gb">🇬🇧 English (UK)</button>
+  <button class="filter-btn" data-lang="es">🇪🇸 Spanish</button>
+  <button class="filter-btn" data-lang="fr">🇫🇷 French</button>
+  <button class="filter-btn" data-lang="hi">🇮🇳 Hindi</button>
+  <button class="filter-btn" data-lang="it">🇮🇹 Italian</button>
+  <button class="filter-btn" data-lang="ja">🇯🇵 Japanese</button>
+  <button class="filter-btn" data-lang="pt-br">🇧🇷 Portuguese</button>
+  <button class="filter-btn" data-lang="cmn">🇨🇳 Mandarin</button>
+</div>
+
+<div id="catalog"></div>
+
+<script>
+const voices = {
+  "en-us": { flag: "🇺🇸", name: "American English", voices: [
+    { id: "af_heart", gender: "female", desc: "Warm, friendly", default: true },
+    { id: "af_bella", gender: "female", desc: "Clear, professional" },
+    { id: "af_nicole", gender: "female", desc: "Calm, measured" },
+    { id: "af_nova", gender: "female", desc: "Bright, energetic" },
+    { id: "af_sky", gender: "female", desc: "Light, airy" },
+    { id: "af_sarah", gender: "female", desc: "Warm, conversational" },
+    { id: "af_river", gender: "female", desc: "Smooth, flowing" },
+    { id: "af_alloy", gender: "female", desc: "Balanced, neutral" },
+    { id: "af_aoede", gender: "female", desc: "Musical, expressive" },
+    { id: "af_jessica", gender: "female", desc: "Friendly, casual" },
+    { id: "af_kore", gender: "female", desc: "Clear, precise" },
+    { id: "am_adam", gender: "male", desc: "Deep, confident" },
+    { id: "am_echo", gender: "male", desc: "Clear, resonant" },
+    { id: "am_eric", gender: "male", desc: "Warm, approachable" },
+    { id: "am_michael", gender: "male", desc: "Professional, steady" },
+    { id: "am_onyx", gender: "male", desc: "Rich, deep" },
+    { id: "am_fenrir", gender: "male", desc: "Strong, commanding" },
+    { id: "am_orion", gender: "male", desc: "Balanced, clear" },
+    { id: "am_rocket", gender: "male", desc: "Energetic, bright" },
+    { id: "am_thunder", gender: "male", desc: "Powerful, bold" },
+  ]},
+  "en-gb": { flag: "🇬🇧", name: "British English", voices: [
+    { id: "bf_alice", gender: "female", desc: "Gentle, refined" },
+    { id: "bf_emma", gender: "female", desc: "Warm, articulate" },
+    { id: "bf_isabella", gender: "female", desc: "Elegant, measured" },
+    { id: "bf_lily", gender: "female", desc: "Sweet, clear" },
+    { id: "bm_daniel", gender: "male", desc: "Authoritative, clear" },
+    { id: "bm_fable", gender: "male", desc: "Storytelling, warm" },
+    { id: "bm_george", gender: "male", desc: "Distinguished, deep" },
+    { id: "bm_lewis", gender: "male", desc: "Friendly, casual" },
+  ]},
+  "es": { flag: "🇪🇸", name: "Spanish", voices: [
+    { id: "ef_dora", gender: "female", desc: "Warm, expressive" },
+    { id: "em_alex", gender: "male", desc: "Clear, natural" },
+    { id: "em_santa", gender: "male", desc: "Cheerful, friendly" },
+  ]},
+  "fr": { flag: "🇫🇷", name: "French", voices: [
+    { id: "ff_siwis", gender: "female", desc: "Elegant, smooth" },
+  ]},
+  "hi": { flag: "🇮🇳", name: "Hindi", voices: [
+    { id: "hf_alpha", gender: "female", desc: "Clear, warm" },
+    { id: "hf_beta", gender: "female", desc: "Soft, gentle" },
+    { id: "hm_omega", gender: "male", desc: "Deep, steady" },
+    { id: "hm_psi", gender: "male", desc: "Clear, confident" },
+  ]},
+  "it": { flag: "🇮🇹", name: "Italian", voices: [
+    { id: "if_sara", gender: "female", desc: "Melodic, warm" },
+    { id: "im_nicola", gender: "male", desc: "Smooth, expressive" },
+  ]},
+  "ja": { flag: "🇯🇵", name: "Japanese", voices: [
+    { id: "jf_alpha", gender: "female", desc: "Clear, polite" },
+    { id: "jf_gongitsune", gender: "female", desc: "Gentle, storytelling" },
+    { id: "jf_nezumi", gender: "female", desc: "Bright, youthful" },
+    { id: "jm_kumo", gender: "male", desc: "Calm, measured" },
+    { id: "jm_takeru", gender: "male", desc: "Strong, clear" },
+  ]},
+  "pt-br": { flag: "🇧🇷", name: "Portuguese (BR)", voices: [
+    { id: "pf_dora", gender: "female", desc: "Warm, natural" },
+    { id: "pm_alex", gender: "male", desc: "Clear, steady" },
+    { id: "pm_santa", gender: "male", desc: "Friendly, warm" },
+  ]},
+  "cmn": { flag: "🇨🇳", name: "Mandarin Chinese", voices: [
+    { id: "zf_xiaobei", gender: "female", desc: "Clear, bright" },
+    { id: "zf_xiaoni", gender: "female", desc: "Soft, gentle" },
+    { id: "zf_xiaoxiao", gender: "female", desc: "Youthful, lively" },
+    { id: "zf_xiaoyi", gender: "female", desc: "Warm, natural" },
+    { id: "zm_yunjian", gender: "male", desc: "Strong, clear" },
+    { id: "zm_yunxi", gender: "male", desc: "Warm, conversational" },
+    { id: "zm_yunxia", gender: "male", desc: "Balanced, steady" },
+    { id: "zm_yunyang", gender: "male", desc: "Deep, authoritative" },
+  ]},
+};
+
+let genderFilter = "all";
+let langFilter = null;
+
+function render() {
+  const catalog = document.getElementById("catalog");
+  catalog.innerHTML = "";
+
+  for (const [lang, group] of Object.entries(voices)) {
+    if (langFilter && lang !== langFilter) continue;
+
+    const filtered = group.voices.filter(v => genderFilter === "all" || v.gender === genderFilter);
+    if (filtered.length === 0) continue;
+
+    const section = document.createElement("div");
+    section.className = "lang-group";
+    section.innerHTML = `
+      <div class="lang-header">
+        <span class="lang-flag">${group.flag}</span>
+        <span class="lang-name">${group.name}</span>
+        <span class="lang-count">${filtered.length} voice${filtered.length > 1 ? 's' : ''}</span>
+      </div>
+      <div class="voice-grid">
+        ${filtered.map(v => `
+          <div class="voice-card${v.default ? ' default' : ''}" onclick="navigator.clipboard.writeText('${v.id}')">
+            <div class="voice-id">${v.id}</div>
+            <div class="voice-meta">
+              <span class="voice-gender ${v.gender}">${v.gender}</span>
+            </div>
+            <div class="voice-desc">${v.desc}</div>
+            <div class="copy-hint">click to copy voice ID</div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    catalog.appendChild(section);
+  }
+}
+
+document.querySelectorAll(".filter-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const filter = btn.dataset.filter;
+    const lang = btn.dataset.lang;
+
+    if (filter) {
+      genderFilter = filter;
+      langFilter = null;
+      document.querySelectorAll("[data-filter]").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll("[data-lang]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    } else if (lang) {
+      if (langFilter === lang) {
+        langFilter = null;
+        btn.classList.remove("active");
+      } else {
+        langFilter = lang;
+        document.querySelectorAll("[data-lang]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+      }
+    }
+    render();
+  });
+});
+
+render();
+</script>
+</body>
+</html>

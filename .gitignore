@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environment
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test/temp artifacts
+*.wav
+*.mp3
+*.m4a
+mcclone.wav
+test_*.wav
+
+# Node
+node_modules/
+.next/
+.turbo/
+
+# Cloned reference
+openai-fm-ref/
+
+# Scratchpad
+scratchpad.md
+
+# Model cache
+.agent-fm/

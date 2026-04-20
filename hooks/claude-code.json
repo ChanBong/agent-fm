@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "agent-fm --safety-ping permission",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "agent-fm --safety-ping error",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
