@@ -16,6 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .config import DEFAULT_VOICE, load_config
 from .models import ensure_models
 
 # Voice metadata for Kokoro voices (subset — most useful for agent-fm)
@@ -88,7 +89,6 @@ VOICES = {
 }
 
 SAMPLE_RATE = 24000
-DEFAULT_VOICE = "am_fenrir"
 
 
 class TTSEngine:
@@ -97,8 +97,10 @@ class TTSEngine:
     def __init__(self) -> None:
         self._kokoro = None  # Lazy-loaded Kokoro model
         self._kokoro_available: bool | None = None  # None = not checked yet
-        self.default_voice: str = DEFAULT_VOICE
-        self.default_speed: float = 1.0
+        config = load_config()
+        voice = config["voice"]
+        self.default_voice: str = voice if voice in VOICES else DEFAULT_VOICE
+        self.default_speed: float = config["speed"]
 
     async def initialize(self) -> None:
         """Initialize the TTS engine. Downloads models on first run."""
