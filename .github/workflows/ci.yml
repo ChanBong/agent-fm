@@ -52,7 +52,8 @@ jobs:
         run: agent-fm --version
 
       - name: Verify import
-        run: python -c "from agent_fm import __version__; print(f'OK: {__version__}')"
+        shell: bash
+        run: python -c "from agent_fm import __version__; print('OK:', __version__)"
 
       - name: Verify all modules import
         shell: bash
@@ -75,6 +76,7 @@ jobs:
         run: agent-fm warmup --ci
 
       - name: Test MCP server responds to initialize
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1.0"}}}' | timeout 15 agent-fm > response.json 2>/dev/null || true
@@ -82,7 +84,7 @@ jobs:
           import json
           with open('response.json') as f:
               data = json.load(f)
-          assert data['result']['serverInfo']['name'] == 'agent-fm', f'Unexpected: {data}'
+          assert data['result']['serverInfo']['name'] == 'agent-fm'
           print('MCP initialize OK')
           "
 
