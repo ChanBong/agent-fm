@@ -76,14 +76,16 @@ jobs:
         run: agent-fm warmup --ci
 
       - name: Test MCP server responds to initialize
-        if: runner.os != 'Windows'
         shell: bash
         run: |
-          echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1.0"}}}' | timeout 15 agent-fm > response.json 2>/dev/null || true
           python -c "
-          import json
-          with open('response.json') as f:
-              data = json.load(f)
+          import subprocess, json, sys
+          proc = subprocess.run(
+              [sys.executable, '-m', 'agent_fm'],
+              input='{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"ci\",\"version\":\"1.0\"}}}',
+              capture_output=True, text=True, timeout=15
+          )
+          data = json.loads(proc.stdout)
           assert data['result']['serverInfo']['name'] == 'agent-fm'
           print('MCP initialize OK')
           "
