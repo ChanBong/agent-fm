@@ -43,6 +43,14 @@ def main() -> None:
         _warmup(ci=ci_mode)
         return
 
+    if args and args[0] == "config":
+        _config_cmd(args[1:])
+        return
+
+    if args and args[0] == "voices":
+        _voices_cmd(args[1:])
+        return
+
     # Default: run MCP server
     from .server import mcp
 
@@ -55,9 +63,114 @@ def _print_help() -> None:
     print("Usage:")
     print("  agent-fm              Run MCP server (stdio transport)")
     print("  agent-fm warmup       Download models + test setup")
-    print("  agent-fm warmup --ci  Same, but skip audio playback")
+    print("  agent-fm config       Show current configuration")
+    print("  agent-fm config voice af_heart")
+    print("                        Set default voice")
+    print("  agent-fm config speed 1.2")
+    print("                        Set default speed")
+    print("  agent-fm config reset Reset to defaults")
+    print("  agent-fm voices       List available voices")
+    print("  agent-fm voices ja    Filter by language")
     print("  agent-fm --version    Show version")
     print("  agent-fm --help       Show this help")
+
+
+def _config_cmd(args: list[str]) -> None:
+    """Handle `agent-fm config [key] [value]`."""
+    import sys
+
+    from .config import CONFIG_PATH, DEFAULT_CONFIG, load_config, save_config
+
+    config = load_config()
+
+    # No args: show current config
+    if not args:
+        print(f"Config: {CONFIG_PATH}")
+        if not CONFIG_PATH.exists():
+            print("  (using defaults — no config file yet)")
+        print()
+        print(f'  voice = "{config["voice"]}"')
+        print(f"  speed = {config['speed']}")
+        print()
+        print("Set a value:  agent-fm config voice af_heart")
+        print("Reset:        agent-fm config reset")
+        return
+
+    key = args[0]
+
+    # Reset
+    if key == "reset":
+        save_config(DEFAULT_CONFIG)
+        print(f"Config reset to defaults: {CONFIG_PATH}")
+        print()
+        print(f'  voice = "{DEFAULT_CONFIG["voice"]}"')
+        print(f"  speed = {DEFAULT_CONFIG['speed']}")
+        return
+
+    if key not in ("voice", "speed"):
+        print(f"Unknown config key: {key}")
+        print("Available keys: voice, speed")
+        sys.exit(1)
+
+    if len(args) < 2:
+        print(f'  {key} = "{config[key]}"' if isinstance(config[key], str) else f"  {key} = {config[key]}")
+        return
+
+    value = args[1]
+    old = config[key]
+
+    if key == "voice":
+        from .tts import VOICES
+
+        if value not in VOICES:
+            print(f"Unknown voice: {value}")
+            print("Run 'agent-fm voices' to see available voices.")
+            sys.exit(1)
+        config["voice"] = value
+    elif key == "speed":
+        try:
+            speed = float(value)
+        except ValueError:
+            print(f"Invalid speed: {value} (must be a number 0.5-2.0)")
+            sys.exit(1)
+        if not 0.5 <= speed <= 2.0:
+            print(f"Speed must be between 0.5 and 2.0 (got {speed})")
+            sys.exit(1)
+        config["speed"] = speed
+
+    save_config(config)
+    new = config[key]
+    if isinstance(old, str):
+        print(f'  {key} = "{new}" (was: "{old}")')
+    else:
+        print(f"  {key} = {new} (was: {old})")
+
+
+def _voices_cmd(args: list[str]) -> None:
+    """Handle `agent-fm voices [language]`."""
+    from .tts import VOICES
+
+    language = args[0] if args else ""
+    voices = VOICES if not language else {k: v for k, v in VOICES.items() if v["language"] == language}
+
+    if not voices:
+        print(f"No voices found for language: {language}")
+        languages = sorted({v["language"] for v in VOICES.values()})
+        print(f"Available languages: {', '.join(languages)}")
+        return
+
+    # Group by language
+    by_lang: dict[str, list[tuple[str, dict]]] = {}
+    for vid, meta in voices.items():
+        by_lang.setdefault(meta["language"], []).append((vid, meta))
+
+    for lang in sorted(by_lang):
+        print(f"  {lang}:")
+        for vid, meta in sorted(by_lang[lang]):
+            gender = meta["gender"][0].upper()
+            print(f"    {vid:<16} {gender}  {meta['description']}")
+    print()
+    print(f"  {len(voices)} voices total")
 
 
 def _warmup(ci: bool = False) -> None:
@@ -154,8 +267,18 @@ def _warmup(ci: bool = False) -> None:
                 print("       Check that an audio output device is connected.")
     print()
 
-    # ── 5. MCP registration ────────────────────────────────────────────
-    print("5. MCP registration")
+    # ── 5. Configuration ──────────────────────────────────────────────
+    print("5. Configuration")
+    from .config import CONFIG_PATH, ensure_config, load_config
+    config_path = ensure_config()
+    config = load_config()
+    ok(f"Config: {config_path}")
+    print(f'       voice = "{config["voice"]}", speed = {config["speed"]}')
+    print(f"       Edit:  agent-fm config voice <id>")
+    print()
+
+    # ── 6. MCP registration ────────────────────────────────────────────
+    print("6. MCP registration")
     claude_bin = shutil.which("claude")
     if claude_bin:
         # Check if already registered
@@ -179,8 +302,8 @@ def _warmup(ci: bool = False) -> None:
         print("         claude mcp add -s user agent-fm -- uvx agent-fm")
     print()
 
-    # ── 6. Voice instructions ──────────────────────────────────────────
-    print("6. Voice instructions (CLAUDE.md)")
+    # ── 7. Voice instructions ──────────────────────────────────────────
+    print("7. Voice instructions (CLAUDE.md)")
     claude_md_global = Path.home() / ".claude" / "CLAUDE.md"
     claude_md_local = Path.cwd() / "CLAUDE.md"
 

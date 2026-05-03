@@ -133,12 +133,16 @@ async def list_voices(language: str = "") -> dict:
 
 
 @mcp.tool(annotations={"readOnlyHint": False})
-async def set_voice(voice: str = "", speed: float = 0.0) -> dict:
+async def set_voice(
+    voice: str = "", speed: float = 0.0, persist: bool = False
+) -> dict:
     """Set the default voice and/or speed for this session.
 
     Args:
         voice: Voice ID to use as default. Leave empty to keep current.
         speed: Default speech speed (0.5-2.0). 0 = keep current.
+        persist: If true, save as the default for all future sessions
+                 (writes to ~/.agent-fm/config.toml).
     """
     engine, _ = await _ensure_initialized()
 
@@ -155,8 +159,23 @@ async def set_voice(voice: str = "", speed: float = 0.0) -> dict:
             return {"status": "error", "error": "Speed must be between 0.5 and 2.0"}
         engine.default_speed = speed
 
-    return {
+    result = {
         "status": "ok",
         "default_voice": engine.default_voice,
         "default_speed": engine.default_speed,
     }
+
+    if persist:
+        from .config import save_config
+
+        save_config({"voice": engine.default_voice, "speed": engine.default_speed})
+        result["persisted"] = True
+    else:
+        result["persisted"] = False
+        result["hint"] = (
+            "This change is for this session only. "
+            "To make it your default across sessions, "
+            "call set_voice with persist=true."
+        )
+
+    return result
