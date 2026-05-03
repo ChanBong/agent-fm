@@ -50,7 +50,7 @@ def main() -> None:
 
 
 def _print_help() -> None:
-    print(f"agent-fm v{__version__} — Give your AI agent a voice")
+    print(f"agent-fm v{__version__} - Give your AI agent a voice")
     print()
     print("Usage:")
     print("  agent-fm              Run MCP server (stdio transport)")
@@ -87,7 +87,7 @@ def _warmup(ci: bool = False) -> None:
         fail_count += 1
         print(f"  [FAIL] {msg}")
 
-    print(f"agent-fm v{__version__} — warmup")
+    print(f"agent-fm v{__version__} - warmup")
     print()
 
     # ── 1. System dependencies ──────────────────────────────────────────
@@ -98,12 +98,12 @@ def _warmup(ci: bool = False) -> None:
         if ctypes.util.find_library("portaudio"):
             ok("PortAudio found")
         else:
-            fail("PortAudio not found — audio will not work")
+            fail("PortAudio not found - audio will not work")
             print("       Fix: sudo apt install libportaudio2")
     elif system == "Darwin":
-        ok("macOS — no system dependencies needed")
+        ok("macOS - no system dependencies needed")
     elif system == "Windows":
-        ok("Windows — no system dependencies needed")
+        ok("Windows - no system dependencies needed")
     print()
 
     # ── 2. TTS models ──────────────────────────────────────────────────
@@ -145,7 +145,7 @@ def _warmup(ci: bool = False) -> None:
             import sounddevice as sd
             sd.play(audio, sr)
             sd.wait()
-            ok("Playback works — you should have heard 'Agent FM is ready.'")
+            ok("Playback works - you should have heard 'Agent FM is ready.'")
         except Exception as e:
             warn(f"Playback failed: {e}")
             if system == "Linux":
@@ -174,7 +174,7 @@ def _warmup(ci: bool = False) -> None:
             warn("Could not check MCP status")
             print("       To register: claude mcp add -s user agent-fm -- uvx agent-fm")
     else:
-        ok("Claude Code not found (skip — not required)")
+        ok("Claude Code not found (skip - not required)")
         print("       When you install Claude Code, run:")
         print("         claude mcp add -s user agent-fm -- uvx agent-fm")
     print()
@@ -192,7 +192,7 @@ def _warmup(ci: bool = False) -> None:
     elif has_local:
         ok(f"Found in {claude_md_local}")
     else:
-        warn("Not configured — your agent won't know when to speak")
+        warn("Not configured - your agent won't know when to speak")
         print("       Add to ~/.claude/CLAUDE.md (global) or ./CLAUDE.md (project):")
         print()
         for line in CLAUDE_MD_SNIPPET.strip().split("\n")[:6]:
@@ -203,7 +203,7 @@ def _warmup(ci: bool = False) -> None:
     print()
 
     # ── Summary ────────────────────────────────────────────────────────
-    print("─" * 50)
+    print("-" * 50)
     if fail_count > 0:
         print(f"Result: {ok_count} ok, {warn_count} warnings, {fail_count} failures")
         print("Fix the failures above and run 'agent-fm warmup' again.")
@@ -212,7 +212,7 @@ def _warmup(ci: bool = False) -> None:
         print(f"Result: {ok_count} ok, {warn_count} pending")
         print("agent-fm works! Complete the pending steps above.")
     else:
-        print(f"Result: {ok_count} ok — fully configured!")
+        print(f"Result: {ok_count} ok - fully configured!")
     print()
 
     # ── Uninstall ──────────────────────────────────────────────────────
