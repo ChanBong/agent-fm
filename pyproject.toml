@@ -33,8 +33,8 @@ dependencies = [
 agent-fm = "agent_fm:main"
 
 [project.urls]
-Homepage = "https://github.com/anthropics/agent-fm"
-Repository = "https://github.com/anthropics/agent-fm"
+Homepage = "https://github.com/ChanBong/agent-fm"
+Repository = "https://github.com/ChanBong/agent-fm"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_fm"]

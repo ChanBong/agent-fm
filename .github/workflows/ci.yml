@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  test-install:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.12"]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.10"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install PortAudio (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libportaudio2
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install from wheel
+        shell: bash
+        run: uv pip install --system dist/*.whl
+
+      - name: Verify version
+        run: agent-fm --version
+
+      - name: Verify import
+        run: python -c "from agent_fm import __version__; print(f'OK: {__version__}')"
+
+      - name: Verify all modules import
+        shell: bash
+        run: |
+          python -c "from agent_fm.server import mcp; print('server OK')"
+          python -c "from agent_fm.tts import TTSEngine; print('tts OK')"
+          python -c "from agent_fm.audio import AudioQueue; print('audio OK')"
+          python -c "from agent_fm.models import ensure_models; print('models OK')"
+
+      - name: Check dependencies
+        run: pip check
+
+      - name: Cache TTS models
+        uses: actions/cache@v4
+        with:
+          path: ~/.agent-fm/models
+          key: kokoro-models-v1.0
+
+      - name: Warmup (CI mode)
+        run: agent-fm warmup --ci
+
+      - name: Test MCP server responds to initialize
+        shell: bash
+        run: |
+          echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1.0"}}}' | timeout 15 agent-fm > response.json 2>/dev/null || true
+          python -c "
+          import json
+          with open('response.json') as f:
+              data = json.load(f)
+          assert data['result']['serverInfo']['name'] == 'agent-fm', f'Unexpected: {data}'
+          print('MCP initialize OK')
+          "
+
+  test-uvx:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install PortAudio
+        run: sudo apt-get update && sudo apt-get install -y libportaudio2
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Test uvx install from wheel
+        shell: bash
+        run: uvx --from ./dist/agent_fm-*.whl agent-fm --version

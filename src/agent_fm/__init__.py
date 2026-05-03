@@ -9,6 +9,7 @@ __version__ = "0.1.0"
 
 def main() -> None:
     """Entry point for the agent-fm CLI."""
+    import os
     import sys
 
     args = sys.argv[1:]
@@ -18,7 +19,8 @@ def main() -> None:
         return
 
     if "warmup" in args:
-        _warmup()
+        ci_mode = "--ci" in args or os.environ.get("CI") == "true"
+        _warmup(ci=ci_mode)
         return
 
     # Default: run MCP server
@@ -27,7 +29,7 @@ def main() -> None:
     mcp.run(transport="stdio")
 
 
-def _warmup() -> None:
+def _warmup(ci: bool = False) -> None:
     """Pre-download TTS models and verify the setup."""
     import platform
     import sys
@@ -77,20 +79,24 @@ def _warmup() -> None:
         sys.exit(1)
 
     # 4. Test audio playback
-    print()
-    print("Testing audio playback...")
-    try:
-        import sounddevice as sd
+    if ci:
+        print()
+        print("[skip] Audio playback skipped (CI mode)")
+    else:
+        print()
+        print("Testing audio playback...")
+        try:
+            import sounddevice as sd
 
-        sd.play(audio, sr)
-        sd.wait()
-        print("[ok] Audio playback works — you should have heard 'Agent FM is ready.'")
-    except Exception as e:
-        print(f"[!!] Audio playback failed: {e}")
-        if system == "Linux":
-            print("     Try: sudo apt install libportaudio2")
-        else:
-            print("     Make sure you have an audio output device connected.")
+            sd.play(audio, sr)
+            sd.wait()
+            print("[ok] Audio playback works — you should have heard 'Agent FM is ready.'")
+        except Exception as e:
+            print(f"[!!] Audio playback failed: {e}")
+            if system == "Linux":
+                print("     Try: sudo apt install libportaudio2")
+            else:
+                print("     Make sure you have an audio output device connected.")
 
     print()
     print("Warmup complete! Add to Claude Code:")
